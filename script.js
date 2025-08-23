@@ -28,7 +28,8 @@ function createAlbum(){
     if(!name) { alert("กรุณาใส่ชื่ออัลบั้ม"); return; }
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    store.add({ name, files: [], used:0, max:500 });
+    // max 20GB = 20*1024 MB
+    store.add({ name, files: [], used:0, max:20*1024 });
     tx.oncomplete = ()=> {
         document.getElementById('albumName').value='';
         renderAlbums();
@@ -71,7 +72,7 @@ function renderAlbums(){
     };
 }
 
-// วาดกราฟ Progress Bar
+// วาดกราฟ Progress Bar (GB)
 function drawChart(canvasId, used, max){
     const canvas = document.getElementById(canvasId);
     if(!canvas) return;
@@ -84,7 +85,7 @@ function drawChart(canvasId, used, max){
     ctx.fillRect(0,40,180 * percentage,20);
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';
-    ctx.fillText(`${used.toFixed(2)}MB / ${max}MB`, 50, 35);
+    ctx.fillText(`${(used/1024).toFixed(2)}GB / ${(max/1024).toFixed(2)}GB`, 10, 35);
 }
 
 // เปิดอัลบั้ม
@@ -149,7 +150,7 @@ function addPreviewItem(f, album, idx, preview){
     const removeBtn = document.createElement('button');
     removeBtn.className='remove-file';
     removeBtn.innerText='×';
-    removeBtn.title = `${f.name} (${f.size.toFixed(2)}MB)`;
+    removeBtn.title = `${f.name} (${(f.size/1024).toFixed(2)} GB)`;
     removeBtn.onclick = ()=>{
         const tx = db.transaction(STORE_NAME, "readwrite");
         const store = tx.objectStore(STORE_NAME);
