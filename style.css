@@ -1,4 +1,4 @@
-﻿body { 
+body { 
     margin:0; 
     font-family:'Segoe UI'; 
     background-color:#111; 
@@ -36,11 +36,8 @@ h1 {
 .album h2 { 
     margin-bottom:10px; 
 }
-.album canvas { 
-    margin-top:10px; 
-}
 button { 
-    margin-top:10px; 
+    margin-top:5px; 
     padding:5px 10px; 
     border:none; 
     background-color:#ff69b4; 
@@ -51,8 +48,13 @@ button {
 button:hover { 
     background-color:#ff85c1; 
 }
-input[type="file"] { 
+.deleteBtn { background-color:#ff4444; }
+.deleteBtn:hover { background-color:#ff6666; }
+input[type="file"], input[type="text"] { 
     margin-top:10px; 
+    padding:5px; 
+    border-radius:5px; 
+    border:none; 
 }
 #preview { 
     margin-top:15px; 
@@ -61,24 +63,29 @@ input[type="file"] {
     gap:10px; 
     justify-content:center; 
 }
-#preview img, #preview video { 
-    border-radius:5px; 
-}
-#newAlbum { 
-    margin-top:20px; 
-    display:flex; 
-    justify-content:center; 
-    gap:10px; 
-}
-input[type="text"] { 
-    padding:5px; 
-    border-radius:5px; 
+.preview-item { position: relative; }
+.preview-item img, .preview-item video { border-radius:5px; }
+.remove-file { 
+    position:absolute; 
+    top:0; 
+    right:0; 
+    background:red; 
     border:none; 
-    width:150px; 
+    border-radius:50%; 
+    width:20px; 
+    height:20px; 
+    color:#fff; 
+    cursor:pointer; 
+    font-size:14px;
 }
-.deleteBtn { 
-    background-color:#ff4444; 
+.tooltip {
+    position:absolute;
+    background:#222;
+    color:#fff;
+    padding:3px 6px;
+    border-radius:3px;
+    font-size:12px;
+    display:none;
+    pointer-events:none;
 }
-.deleteBtn:hover { 
-    background-color:#ff6666; 
-}
+#chart-container { margin-top:10px; }
