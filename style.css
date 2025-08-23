@@ -1,0 +1,84 @@
+﻿body { 
+    margin:0; 
+    font-family:'Segoe UI'; 
+    background-color:#111; 
+    color:#fff; 
+}
+.container { 
+    max-width:900px; 
+    margin:auto; 
+    padding:20px; 
+}
+h1 { 
+    text-align:center; 
+    color:#ff69b4; 
+}
+.albums { 
+    display:flex; 
+    flex-wrap:wrap; 
+    gap:20px; 
+    justify-content:center; 
+    margin-top:20px; 
+}
+.album { 
+    background-color:#222; 
+    border:2px solid #ff69b4; 
+    border-radius:10px; 
+    width:200px; 
+    text-align:center; 
+    padding:15px; 
+    cursor:pointer; 
+    transition: transform 0.2s; 
+}
+.album:hover { 
+    transform:scale(1.05); 
+}
+.album h2 { 
+    margin-bottom:10px; 
+}
+.album canvas { 
+    margin-top:10px; 
+}
+button { 
+    margin-top:10px; 
+    padding:5px 10px; 
+    border:none; 
+    background-color:#ff69b4; 
+    color:#fff; 
+    border-radius:5px; 
+    cursor:pointer; 
+}
+button:hover { 
+    background-color:#ff85c1; 
+}
+input[type="file"] { 
+    margin-top:10px; 
+}
+#preview { 
+    margin-top:15px; 
+    display:flex; 
+    flex-wrap:wrap; 
+    gap:10px; 
+    justify-content:center; 
+}
+#preview img, #preview video { 
+    border-radius:5px; 
+}
+#newAlbum { 
+    margin-top:20px; 
+    display:flex; 
+    justify-content:center; 
+    gap:10px; 
+}
+input[type="text"] { 
+    padding:5px; 
+    border-radius:5px; 
+    border:none; 
+    width:150px; 
+}
+.deleteBtn { 
+    background-color:#ff4444; 
+}
+.deleteBtn:hover { 
+    background-color:#ff6666; 
+}
