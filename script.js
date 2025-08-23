@@ -1,124 +1,175 @@
-﻿let albumsData = JSON.parse(localStorage.getItem('albumsData')) || [];
+let db;
+const DB_NAME = "MyAlbumsDB";
+const DB_VERSION = 1;
+const STORE_NAME = "albums";
 
-function saveData() {
-    localStorage.setItem('albumsData', JSON.stringify(albumsData));
+const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+request.onupgradeneeded = function(e) {
+    db = e.target.result;
+    if(!db.objectStoreNames.contains(STORE_NAME)){
+        const store = db.createObjectStore(STORE_NAME, { keyPath: "name" });
+        store.createIndex("name", "name", { unique: true });
+    }
+};
+
+request.onsuccess = function(e) {
+    db = e.target.result;
+    renderAlbums();
+};
+
+request.onerror = function(e) {
+    alert("IndexedDB ไม่สามารถเปิดได้");
+};
+
+// สร้างอัลบั้ม
+function createAlbum(){
+    const name = document.getElementById('albumName').value.trim();
+    if(!name) { alert("กรุณาใส่ชื่ออัลบั้ม"); return; }
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.add({ name, files: [], used:0, max:500 });
+    tx.oncomplete = ()=> {
+        document.getElementById('albumName').value='';
+        renderAlbums();
+    };
+    tx.onerror = ()=> alert("สร้างอัลบั้มไม่สำเร็จ (ซ้ำชื่อหรือผิดพลาด)");
 }
 
-function renderAlbums() {
+// ลบอัลบั้ม
+function deleteAlbum(name){
+    if(confirm(`คุณแน่ใจว่าจะลบอัลบั้ม "${name}" ?`)){
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        store.delete(name);
+        tx.oncomplete = ()=> renderAlbums();
+    }
+}
+
+// ดึงอัลบั้มทั้งหมดและแสดง
+function renderAlbums(){
     const albumsContainer = document.getElementById('albums');
     albumsContainer.innerHTML = '';
-    albumsData.forEach((album, index) => {
-        const div = document.createElement('div');
-        div.className = 'album';
-        div.innerHTML = `
-            <h2>${album.name}</h2>
-            <canvas id="chart-${index}" width="180" height="100"></canvas>
-            <button onclick="openAlbum(${index})">เข้าสู่อัลบั้ม</button>
-            <button class="deleteBtn" onclick="deleteAlbum(${index})">ลบอัลบั้ม</button>
-        `;
-        albumsContainer.appendChild(div);
-        drawChart(`chart-${index}`, album.used, album.max);
-    });
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    store.openCursor().onsuccess = function(e){
+        const cursor = e.target.result;
+        if(cursor){
+            const album = cursor.value;
+            const div = document.createElement('div');
+            div.className = 'album';
+            div.innerHTML = `
+                <h2>${album.name}</h2>
+                <canvas id="chart-${album.name}" width="180" height="100"></canvas>
+                <button onclick="openAlbum('${album.name}')">เข้าสู่อัลบั้ม</button>
+                <button class="deleteBtn" onclick="deleteAlbum('${album.name}')">ลบอัลบั้ม</button>
+            `;
+            albumsContainer.appendChild(div);
+            drawChart(`chart-${album.name}`, album.used, album.max);
+            cursor.continue();
+        }
+    };
 }
 
-function drawChart(canvasId, used, max) {
+// วาดกราฟ Progress Bar
+function drawChart(canvasId, used, max){
     const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
     const ctx = canvas.getContext('2d');
     const percentage = used / max;
-
-    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = '#444';
     ctx.fillRect(0,40,180,20);
-
     ctx.fillStyle = '#ff69b4';
     ctx.fillRect(0,40,180 * percentage,20);
-
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';
     ctx.fillText(`${used.toFixed(2)}MB / ${max}MB`, 50, 35);
 }
 
-function createAlbum(){
-    const name = document.getElementById('albumName').value.trim();
-    if(name){
-        albumsData.push({ name: name, used:0, max:500, files:[] });
-        saveData();
-        renderAlbums();
-        document.getElementById('albumName').value = '';
-    } else {
-        alert('กรุณาใส่ชื่ออัลบั้ม');
-    }
-}
-
-function deleteAlbum(index){
-    if(confirm(`คุณแน่ใจหรือว่าต้องการลบอัลบั้ม "${albumsData[index].name}"?`)){
-        albumsData.splice(index,1);
-        saveData();
-        renderAlbums();
-    }
-}
-
-function openAlbum(index){
-    const album = albumsData[index];
+// เปิดอัลบั้ม
+function openAlbum(name){
     const main = document.getElementById('main');
     main.innerHTML = `
         <div style="text-align:center;">
-            <h2>${album.name}</h2>
+            <h2>${name}</h2>
             <input type="file" id="uploadFile" multiple>
             <div id="preview"></div>
-            <canvas id="chart-${index}" width="300" height="20"></canvas>
+            <canvas id="chart-${name}" width="300" height="20"></canvas>
             <button onclick="back()">กลับ</button>
         </div>
     `;
-
     const uploadInput = document.getElementById('uploadFile');
     const preview = document.getElementById('preview');
-    drawChart(`chart-${index}`, album.used, album.max);
 
-    // แสดงไฟล์เก่า
-    album.files.forEach(f=>{
-        const element = document.createElement(f.type.startsWith('image')?'img':'video');
-        element.src = f.data;
-        element.width = f.type.startsWith('image')?100:150;
-        element.height = 100;
-        if(f.type.startsWith('video')) element.controls = true;
-        preview.appendChild(element);
-    });
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(name);
+    getReq.onsuccess = function(e){
+        const album = e.target.result;
+        album.files.forEach((f, idx)=>{
+            addPreviewItem(f, album, idx, preview);
+        });
+        drawChart(`chart-${name}`, album.used, album.max);
+    };
 
     uploadInput.addEventListener('change', function(){
         Array.from(this.files).forEach(file=>{
             const reader = new FileReader();
-            reader.onload = function(e){
-                let element;
-                if(file.type.startsWith('image')){
-                    element = document.createElement('img');
-                    element.src = e.target.result;
-                    element.width = 100;
-                    element.height = 100;
-                } else if(file.type.startsWith('video')){
-                    element = document.createElement('video');
-                    element.src = e.target.result;
-                    element.controls = true;
-                    element.width = 150;
-                    element.height = 100;
-                }
-                preview.appendChild(element);
-
-                // บันทึกไฟล์ลงอัลบั้ม
-                const sizeMB = (file.size / 1024 / 1024);
-                album.files.push({ name:file.name, size:sizeMB, data:e.target.result, type:file.type });
-                album.used = album.files.reduce((sum,f)=>sum+f.size,0);
-                saveData();
-                drawChart(`chart-${index}`, album.used, album.max);
-            }
-            reader.readAsDataURL(file);
+            reader.onload = function(){
+                const blob = new Blob([file], {type: file.type});
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                const getReq = store.get(name);
+                getReq.onsuccess = function(e){
+                    const album = e.target.result;
+                    album.files.push({ name:file.name, type:file.type, data: blob, size:file.size/(1024*1024) });
+                    album.used = album.files.reduce((sum,f)=>sum+f.size,0);
+                    store.put(album);
+                    addPreviewItem(album.files[album.files.length-1], album, album.files.length-1, preview);
+                    drawChart(`chart-${name}`, album.used, album.max);
+                };
+            };
+            reader.readAsArrayBuffer(file);
         });
     });
 }
 
+// เพิ่มไฟล์ Preview + ลบไฟล์ได้
+function addPreviewItem(f, album, idx, preview){
+    const div = document.createElement('div');
+    div.className = 'preview-item';
+    const element = f.type.startsWith('image') ? document.createElement('img') : document.createElement('video');
+    element.src = URL.createObjectURL(f.data);
+    element.width = f.type.startsWith('image')?100:150;
+    element.height = 100;
+    if(f.type.startsWith('video')) element.controls=true;
+    div.appendChild(element);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className='remove-file';
+    removeBtn.innerText='×';
+    removeBtn.title = `${f.name} (${f.size.toFixed(2)}MB)`;
+    removeBtn.onclick = ()=>{
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const getReq = store.get(album.name);
+        getReq.onsuccess = function(e){
+            const alb = e.target.result;
+            alb.files.splice(idx,1);
+            alb.used = alb.files.reduce((sum,f)=>sum+f.size,0);
+            store.put(alb);
+            div.remove();
+            drawChart(`chart-${album.name}`, alb.used, alb.max);
+        };
+    };
+    div.appendChild(removeBtn);
+
+    preview.appendChild(div);
+}
+
 function back(){
-    const main = document.getElementById('main');
-    main.innerHTML = `
+    document.getElementById('main').innerHTML = `
         <h1>My Albums</h1>
         <div id="newAlbum">
             <input type="text" id="albumName" placeholder="ชื่ออัลบั้ม">
@@ -128,5 +179,3 @@ function back(){
     `;
     renderAlbums();
 }
-
-renderAlbums();
