@@ -2,7 +2,9 @@ let db;
 const DB_NAME = "MyAlbumsDB";
 const DB_VERSION = 1;
 const STORE_NAME = "albums";
+const MAX_GB = 20; // max 20GB ต่ออัลบั้ม
 
+// เปิด IndexedDB
 const request = indexedDB.open(DB_NAME, DB_VERSION);
 
 request.onupgradeneeded = function(e) {
@@ -28,8 +30,7 @@ function createAlbum(){
     if(!name) { alert("กรุณาใส่ชื่ออัลบั้ม"); return; }
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    // max 20GB = 20*1024 MB
-    store.add({ name, files: [], used:0, max:20*1024 });
+    store.add({ name, files: [], used:0, max: MAX_GB*1024 }); // เก็บ max เป็น MB
     tx.oncomplete = ()=> {
         document.getElementById('albumName').value='';
         renderAlbums();
@@ -80,12 +81,12 @@ function drawChart(canvasId, used, max){
     const percentage = used / max;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = '#444';
-    ctx.fillRect(0,40,180,20);
+    ctx.fillRect(0,40,canvas.width,20);
     ctx.fillStyle = '#ff69b4';
-    ctx.fillRect(0,40,180 * percentage,20);
+    ctx.fillRect(0,40,canvas.width * percentage,20);
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';
-    ctx.fillText(`${(used/1024).toFixed(2)}GB / ${(max/1024).toFixed(2)}GB`, 10, 35);
+    ctx.fillText(`${(used/1024).toFixed(2)}GB / ${MAX_GB}GB`, 10, 35);
 }
 
 // เปิดอัลบั้ม
